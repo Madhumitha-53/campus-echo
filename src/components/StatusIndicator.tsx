@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 
 interface StatusIndicatorProps {
   breakTimes: BreakTime[];
+  demoMode?: boolean;
 }
 
-export const StatusIndicator = ({ breakTimes }: StatusIndicatorProps) => {
+export const StatusIndicator = ({ breakTimes, demoMode = false }: StatusIndicatorProps) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [status, setStatus] = useState<{ isBreak: boolean; currentBreak: BreakTime | null }>({ 
     isBreak: false, 
@@ -17,14 +18,21 @@ export const StatusIndicator = ({ breakTimes }: StatusIndicatorProps) => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      setStatus(isBreakTime(breakTimes));
+      if (demoMode) {
+        setStatus({ isBreak: true, currentBreak: { id: 'demo', name: 'Demo Mode', startHour: 0, startMinute: 0, endHour: 23, endMinute: 59, enabled: true } });
+      } else {
+        setStatus(isBreakTime(breakTimes));
+      }
     }, 1000);
 
-    // Initial check
-    setStatus(isBreakTime(breakTimes));
+    if (demoMode) {
+      setStatus({ isBreak: true, currentBreak: { id: 'demo', name: 'Demo Mode', startHour: 0, startMinute: 0, endHour: 23, endMinute: 59, enabled: true } });
+    } else {
+      setStatus(isBreakTime(breakTimes));
+    }
 
     return () => clearInterval(timer);
-  }, [breakTimes]);
+  }, [breakTimes, demoMode]);
 
   const nextBreak = !status.isBreak ? getNextBreakTime(breakTimes) : null;
 
