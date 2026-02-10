@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnnouncementForm } from "@/components/AnnouncementForm";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { AnnouncementHistory, HistoryItem } from "@/components/AnnouncementHistory";
 import { BreakTimeConfig } from "@/components/BreakTimeConfig";
+import { AutoAnnouncementQueue } from "@/components/AutoAnnouncementQueue";
 import { defaultBreakTimes, isBreakTime, BreakTime } from "@/lib/breakTimeConfig";
 import { ttsService } from "@/lib/textToSpeech";
+import { checkAndAutoPlay } from "@/lib/autoAnnouncement";
+import { toast } from "sonner";
 
 const Index = () => {
   const [breakTimes, setBreakTimes] = useState<BreakTime[]>(defaultBreakTimes);
@@ -16,18 +19,48 @@ const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Check break time status every minute
+  // Register service worker for offline support
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  // Check break time status every minute & auto-play queued announcements
   useEffect(() => {
     const checkBreakTime = () => {
       const { isBreak } = isBreakTime(breakTimes);
       setCanBroadcast(isBreak);
+
+      // Auto-play queued announcements when break starts
+      if (!isPlaying) {
+        const played = checkAndAutoPlay(
+          breakTimes,
+          (script) => {
+            setCurrentScript(script);
+            setIsEmergency(false);
+            setIsPlaying(true);
+            toast.success("Auto-broadcasting queued announcements!");
+            // Add to history
+            const newItem: HistoryItem = {
+              id: `${Date.now()}`,
+              script,
+              isEmergency: false,
+              timestamp: new Date(),
+              category: "Auto Queue",
+            };
+            setHistory((prev) => [newItem, ...prev].slice(0, 10));
+          },
+          () => setIsPlaying(false)
+        );
+      }
     };
 
     checkBreakTime();
-    const interval = setInterval(checkBreakTime, 60000); // Check every minute
+    const interval = setInterval(checkBreakTime, 60000);
 
     return () => clearInterval(interval);
-  }, [breakTimes]);
+  }, [breakTimes, isPlaying]);
 
   const handleBroadcast = (script: string, emergency: boolean) => {
     // Check if we can broadcast (break time or emergency)
@@ -94,7 +127,10 @@ const Index = () => {
             <div className="flex-1 w-full">
               <StatusIndicator breakTimes={breakTimes} />
             </div>
-            <BreakTimeConfig breakTimes={breakTimes} onUpdate={setBreakTimes} />
+            <div className="flex items-center gap-2">
+              <AutoAnnouncementQueue isPlaying={isPlaying} />
+              <BreakTimeConfig breakTimes={breakTimes} onUpdate={setBreakTimes} />
+            </div>
           </section>
 
           {/* Main Content Grid */}
