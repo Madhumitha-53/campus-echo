@@ -1,0 +1,16 @@
+{
+  "name": "Campus FM",
+  "short_name": "CampusFM",
+  "description": "Smart Campus Audio Announcement System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1c",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
