@@ -202,6 +202,7 @@ const Index = () => {
               "📶 Works Offline",
               "🔊 Voice Selection",
               "📋 Queue System",
+              "🌐 Multi-Language",
             ].map((feature) => (
               <span
                 key={feature}
